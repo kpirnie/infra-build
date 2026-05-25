@@ -36,18 +36,12 @@ resolve_nginx_versions() {
 
   NGINX_VERSION=$(curl -fsSL https://nginx.org/en/download.html | grep -oP 'nginx-\K1\.[0-9]*[13579]\.[0-9]+(?=\.tar\.gz)' | head -1)
   local openssl_tag;  openssl_tag=$(gh_latest openssl/openssl);  OPENSSL_VERSION="${openssl_tag#openssl-}"
-  LUAJIT_BRANCH=$(curl -fsSL "https://api.github.com/repos/openresty/luajit2/tags" | grep '"name"' | grep -oP '"v2\.1-\d+"' | head -1 | tr -d '"')
-  NDK_VERSION=$(strip_v "$(gh_latest_tag vision5/ngx_devel_kit)")
-  LUA_NGINX_VERSION=$(strip_v "$(gh_latest_tag openresty/lua-nginx-module)")
   HEADERS_MORE_VERSION=$(strip_v "$(gh_latest_tag openresty/headers-more-nginx-module)")
   GEOIP2_VERSION=$(gh_latest leev/ngx_http_geoip2_module)
   NJS_VERSION=$(gh_latest nginx/njs)
 
   log "  nginx          : ${NGINX_VERSION}"
   log "  openssl        : ${OPENSSL_VERSION}"
-  log "  luajit         : ${LUAJIT_BRANCH}"
-  log "  ndk            : ${NDK_VERSION}"
-  log "  lua-nginx      : ${LUA_NGINX_VERSION}"
   log "  headers-more   : ${HEADERS_MORE_VERSION}"
   log "  geoip2         : ${GEOIP2_VERSION}"
   log "  njs            : ${NJS_VERSION}"
@@ -206,17 +200,14 @@ smoke_php() {
 preflight
 
 # nginx — resolve versions first, then pass them all as build args
-NGINX_TAG="ghcr.io/kpirnie/nginx:local"
+NGINX_TAG="ghcr.io/kpirnie/nginx:latest"
 resolve_nginx_versions
 
-if do_build "nginx" "nginx" "${NGINX_TAG}"          \
-    "NGINX_VERSION=${NGINX_VERSION}"                \
-    "OPENSSL_VERSION=${OPENSSL_VERSION}"            \
-    "LUAJIT_BRANCH=${LUAJIT_BRANCH}"                \
-    "NDK_VERSION=${NDK_VERSION}"                    \
-    "LUA_NGINX_VERSION=${LUA_NGINX_VERSION}"        \
-    "HEADERS_MORE_VERSION=${HEADERS_MORE_VERSION}"  \
-    "GEOIP2_VERSION=${GEOIP2_VERSION}"              \
+if do_build "nginx" "nginx" "${NGINX_TAG}"         \
+    "NGINX_VERSION=${NGINX_VERSION}"               \
+    "OPENSSL_VERSION=${OPENSSL_VERSION}"           \
+    "HEADERS_MORE_VERSION=${HEADERS_MORE_VERSION}" \
+    "GEOIP2_VERSION=${GEOIP2_VERSION}"             \
     "NJS_VERSION=${NJS_VERSION}"; then
   if smoke_nginx "${NGINX_TAG}"; then
     RESULTS[nginx]="PASS"
@@ -233,7 +224,7 @@ echo ""
 PHP_VERSIONS=("8.2" "8.3" "8.4" "8.5")
 
 for ver in "${PHP_VERSIONS[@]}"; do
-  PHP_TAG="ghcr.io/kpirnie/php:${ver}-local"
+  PHP_TAG="ghcr.io/kpirnie/php:${ver}-latest"
 
   if do_build "php ${ver}" "php" "${PHP_TAG}" "PHP_VERSION=${ver}"; then
     if smoke_php "${PHP_TAG}"; then
@@ -274,7 +265,7 @@ else
 fi
 
 echo ""
-warn "Local images are tagged with ':local' and have not been pushed."
-warn "To clean up: podman images | grep ':local' | awk '{print \$3}' | xargs podman rmi"
+warn "Local images are tagged with ':latest' and have not been pushed."
+warn "To clean up: podman images | grep ':latest' | awk '{print \$3}' | xargs podman rmi"
 
 exit "${OVERALL}"

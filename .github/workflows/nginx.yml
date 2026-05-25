@@ -38,21 +38,15 @@ jobs:
 
           nginx=$(curl -fsSL https://nginx.org/en/download.html | grep -oP 'nginx-\K1\.[0-9]*[13579]\.[0-9]+(?=\.tar\.gz)' | head -1)
           openssl_tag=$(gh_latest openssl/openssl)
-          luajit=$(curl -fsSL "https://api.github.com/repos/openresty/luajit2/tags" | grep '"name"' | grep -oP '"v2\.1-[0-9]+"' | head -1 | tr -d '"')
-          ndk=$(strip_v "$(gh_latest_tag vision5/ngx_devel_kit)")
-          lua=$(strip_v "$(gh_latest_tag openresty/lua-nginx-module)")
           headers=$(strip_v "$(gh_latest_tag openresty/headers-more-nginx-module)")
           geoip2=$(gh_latest leev/ngx_http_geoip2_module)
           njs=$(gh_latest nginx/njs)
 
-          echo "nginx=${nginx}"             >> $GITHUB_OUTPUT
+          echo "nginx=${nginx}"                  >> $GITHUB_OUTPUT
           echo "openssl=${openssl_tag#openssl-}" >> $GITHUB_OUTPUT
-          echo "luajit=${luajit}"           >> $GITHUB_OUTPUT
-          echo "ndk=${ndk}"                 >> $GITHUB_OUTPUT
-          echo "lua=${lua}"                 >> $GITHUB_OUTPUT
-          echo "headers=${headers}"         >> $GITHUB_OUTPUT
-          echo "geoip2=${geoip2}"           >> $GITHUB_OUTPUT
-          echo "njs=${njs}"                 >> $GITHUB_OUTPUT
+          echo "headers=${headers}"              >> $GITHUB_OUTPUT
+          echo "geoip2=${geoip2}"                >> $GITHUB_OUTPUT
+          echo "njs=${njs}"                      >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -79,9 +73,6 @@ jobs:
           build-args: |
             NGINX_VERSION=${{ steps.versions.outputs.nginx }}
             OPENSSL_VERSION=${{ steps.versions.outputs.openssl }}
-            LUAJIT_BRANCH=${{ steps.versions.outputs.luajit }}
-            NDK_VERSION=${{ steps.versions.outputs.ndk }}
-            LUA_NGINX_VERSION=${{ steps.versions.outputs.lua }}
             HEADERS_MORE_VERSION=${{ steps.versions.outputs.headers }}
             GEOIP2_VERSION=${{ steps.versions.outputs.geoip2 }}
             NJS_VERSION=${{ steps.versions.outputs.njs }}

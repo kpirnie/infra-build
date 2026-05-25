@@ -8,9 +8,6 @@ FROM docker.io/library/alpine:latest AS builder
 # ── Version pins (overridable via --build-arg in GH Actions) ─────────────────
 ARG NGINX_VERSION=1.31.1
 ARG OPENSSL_VERSION=4.0.0
-ARG LUAJIT_BRANCH=v2.1-20250826
-ARG NDK_VERSION=0.3.4
-ARG LUA_NGINX_VERSION=0.10.29
 ARG HEADERS_MORE_VERSION=0.39
 ARG GEOIP2_VERSION=3.4
 ARG NJS_VERSION=0.9.5
@@ -30,16 +27,6 @@ RUN apk add --no-cache \
     pcre2-dev        \
     perl             \
     zlib-dev
-
-# ── LuaJIT ── OpenResty fork; stable arm64 support unlike upstream ────────────
-RUN git clone --depth 1 -b "${LUAJIT_BRANCH}" \
-    https://github.com/openresty/luajit2.git /tmp/luajit && \
-    cd /tmp/luajit && \
-    make -j"$(nproc)" PREFIX=/usr/local/luajit && \
-    make install      PREFIX=/usr/local/luajit
-
-ENV LUAJIT_LIB=/usr/local/luajit/lib \
-    LUAJIT_INC=/usr/local/luajit/include/luajit-2.1
 
 # ── quictls ── OpenSSL fork that adds QUIC transport support ──────────────────
 # Passed to nginx configure via --with-openssl; built statically into nginx.
@@ -67,16 +54,6 @@ RUN curl -fsSL \
     "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v${HEADERS_MORE_VERSION}.tar.gz" | \
     tar xz -C /tmp
 
-# ── ngx_devel_kit ── required foundation for lua-nginx-module ─────────────────
-RUN curl -fsSL \
-    "https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v${NDK_VERSION}.tar.gz" | \
-    tar xz -C /tmp
-
-# ── lua-nginx-module ── embedded LuaJIT scripting inside nginx ────────────────
-RUN curl -fsSL \
-    "https://github.com/openresty/lua-nginx-module/archive/refs/tags/v${LUA_NGINX_VERSION}.tar.gz" | \
-    tar xz -C /tmp
-
 # ── njs ── nginx JavaScript module ───────────────────────────────────────────
 RUN curl -fsSL \
     "https://github.com/nginx/njs/archive/refs/tags/${NJS_VERSION}.tar.gz" | \
@@ -88,9 +65,6 @@ RUN curl -fsSL \
     tar xz -C /tmp
 
 # ── Configure + compile ───────────────────────────────────────────────────────
-# quictls is built statically into nginx via --with-openssl (no runtime dep).
-# LuaJIT is dynamic; rpath is embedded so the final image finds it at the same
-# path (/usr/local/luajit/lib) where we copy it in the runtime stage.
 RUN cd /tmp/nginx-${NGINX_VERSION} && ./configure \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
@@ -139,11 +113,9 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && ./configure \
     --add-module=/tmp/zstd-nginx-module \
     --add-module=/tmp/ngx_http_geoip2_module-${GEOIP2_VERSION} \
     --add-module=/tmp/headers-more-nginx-module-${HEADERS_MORE_VERSION} \
-    --add-module=/tmp/ngx_devel_kit-${NDK_VERSION} \
-    --add-module=/tmp/lua-nginx-module-${LUA_NGINX_VERSION} \
     --add-module=/tmp/njs-${NJS_VERSION}/nginx \
     --with-cc-opt="-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
-    --with-ld-opt="-Wl,-z,relro -Wl,-z,now -Wl,--as-needed -Wl,-rpath,/usr/local/luajit/lib" && \
+    --with-ld-opt="-Wl,-z,relro -Wl,-z,now -Wl,--as-needed" && \
     make -j"$(nproc)" && \
     make install && \
     strip /usr/sbin/nginx
@@ -187,7 +159,6 @@ RUN apk add --no-cache \
 # ── Artifacts from builder ────────────────────────────────────────────────────
 COPY --from=builder /usr/sbin/nginx           /usr/sbin/nginx
 COPY --from=builder /etc/nginx                /etc/nginx
-COPY --from=builder /usr/local/luajit/lib     /usr/local/luajit/lib
 
 # ── Overlay minimal config (mime.types retained from builder's make install) ──
 COPY conf/nginx.conf /etc/nginx/nginx.conf
