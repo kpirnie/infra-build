@@ -2,7 +2,7 @@ name: Build · nginx
 
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "10 0 * * *"
   push:
     branches: [main]
     paths:
