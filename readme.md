@@ -30,7 +30,7 @@ ghcr.io/kpirnie/nginx:latest-YYYY-MM-DD
 | Compression | Brotli (`ngx_brotli`), Zstd (`zstd-nginx-module`), gzip (built-in) |
 | GeoIP | GeoIP2 (`ngx_http_geoip2_module`) — MaxMind databases must be volume-mounted |
 | Headers | `headers-more-nginx-module` |
-| Scripting | NJS (`njs`), LuaJIT ([OpenResty fork](https://github.com/openresty/luajit2)) |
+| Scripting | NJS (`njs`) |
 | Image processing | `--with-http_image_filter_module` |
 | Stream proxy | `--with-stream` + SSL + realip + ssl_preread |
 | Arch | `linux/amd64`, `linux/arm64` |
