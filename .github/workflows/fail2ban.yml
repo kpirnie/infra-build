@@ -48,6 +48,7 @@ jobs:
           context: fail2ban
           platforms: linux/amd64,linux/arm64
           push: true
+          provenance: false
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:latest-${{ steps.meta.outputs.date }}

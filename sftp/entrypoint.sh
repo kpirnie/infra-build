@@ -48,6 +48,8 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 PermitRootLogin no
 PasswordAuthentication yes
 ChallengeResponseAuthentication no
+SyslogFacility AUTH
+LogLevel VERBOSE
 Subsystem sftp internal-sftp
 MaxSessions 10
 MaxStartups 10:30:100
