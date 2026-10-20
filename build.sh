@@ -94,7 +94,7 @@ preflight() {
     fi
   fi
 
-  for dir in nginx php sftp fail2ban; do
+  for dir in nginx php sftp fail2ban malscan; do
     if [[ ! -d "$dir" ]]; then
       fail "Expected directory '${dir}' not found — run this script from the repo root"
       exit 1
@@ -270,6 +270,37 @@ smoke_fail2ban() {
   return "${passed}"
 }
 
+# ── malscan smoke test ────────────────────────────────────────────────────────
+smoke_malscan() {
+  local tag="$1"
+  log "Smoke testing malscan: ${tag}"
+  local passed=0
+
+  local ver
+  if ver=$(podman run --rm --entrypoint clamscan "${tag}" --version 2>&1); then
+    ok "clamscan: ${ver}"
+  else
+    fail "clamscan: check failed"
+    (( passed++ )) || true
+  fi
+
+  if podman run --rm --entrypoint test "${tag}" -x /usr/local/maldetect/maldet; then
+    ok "maldet: OK"
+  else
+    fail "maldet: not installed"
+    (( passed++ )) || true
+  fi
+
+  if podman run --rm --entrypoint yara "${tag}" -w /opt/pmf/php.yar /dev/null; then
+    ok "yara: php-malware-finder rules compile"
+  else
+    fail "yara: php-malware-finder rules failed to compile"
+    (( passed++ )) || true
+  fi
+
+  return "${passed}"
+}
+
 # ── Build + smoke + optional push for a single image ─────────────────────────
 # Usage: run_image <key> <label> <context> <smoke_fn> <full_tag> <dated_tag> [extra build args...]
 run_image() {
@@ -340,13 +371,18 @@ run_image "fail2ban" "fail2ban" "fail2ban" \
     "ghcr.io/kpirnie/fail2ban:${TAG_SUFFIX}" \
     "ghcr.io/kpirnie/fail2ban:${TAG_SUFFIX}-${BUILD_DATE}"
 
+run_image "malscan" "malscan" "malscan" \
+    smoke_malscan \
+    "ghcr.io/kpirnie/malscan:${TAG_SUFFIX}" \
+    "ghcr.io/kpirnie/malscan:${TAG_SUFFIX}-${BUILD_DATE}"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo -e "${BOLD}──────────────────────────────────────────${NC}"
 echo -e "${BOLD}  Build Summary${NC}"
 echo -e "${BOLD}──────────────────────────────────────────${NC}"
 
 OVERALL=0
-for key in nginx php-8.2 php-8.3 php-8.4 php-8.5 sftp fail2ban; do
+for key in nginx php-8.2 php-8.3 php-8.4 php-8.5 sftp fail2ban malscan; do
   result="${RESULTS[$key]:-SKIPPED}"
   if [[ "${result}" == "PASS" ]]; then
     echo -e "  ${GREEN}✔${NC}  ${key}"
