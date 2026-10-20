@@ -291,13 +291,6 @@ smoke_malscan() {
     (( passed++ )) || true
   fi
 
-  if podman run --rm --entrypoint yara "${tag}" -w /opt/pmf/php.yar /dev/null; then
-    ok "yara: php-malware-finder rules compile"
-  else
-    fail "yara: php-malware-finder rules failed to compile"
-    (( passed++ )) || true
-  fi
-
   return "${passed}"
 }
 

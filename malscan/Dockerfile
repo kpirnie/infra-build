@@ -1,9 +1,8 @@
 # latest alpine
 FROM docker.io/library/alpine:latest
 
-# clamav is maldet's scan engine, yara runs the module-dependent rules clamav can't,
-# and maldet's scripts expect the gnu userland over busybox
-RUN apk add --no-cache bash clamav clamav-libunrar coreutils curl file findutils gawk grep sed tar tzdata util-linux wget yara
+# clamav is maldet's scan engine, and maldet's scripts expect the gnu userland over busybox
+RUN apk add --no-cache bash clamav clamav-libunrar coreutils curl file findutils gawk grep perl sed tar tzdata util-linux wget
 
 # freshclam runs as root against a bind-mounted database directory
 RUN printf 'DatabaseDirectory /var/lib/clamav\nDatabaseOwner root\nDatabaseMirror database.clamav.net\n' > /etc/clamav/freshclam.conf
@@ -17,29 +16,21 @@ RUN mkdir -p /tmp/lmd /etc/cron.d /etc/cron.daily /etc/cron.weekly && \
     rm -rf /tmp/lmd /etc/cron.d/maldet* /etc/cron.daily/maldet /etc/cron.weekly/maldet-watchdog
 
 # report only: never quarantine, never self-update (the nightly rebuild does that),
-# scan root-owned files (rootless podman maps the site owner to root), and run
-# clamscan plus native yara for the custom rules
+# scan root-owned files (rootless podman maps the site owner to root), and let
+# clamscan evaluate maldet's yara rules
 RUN sed -i \
     -e 's/^email_alert=.*/email_alert="0"/' \
     -e 's/^autoupdate_version=.*/autoupdate_version="0"/' \
     -e 's/^sigup_interval=.*/sigup_interval="0"/' \
     -e 's/^cron_daily_scan=.*/cron_daily_scan="0"/' \
     -e 's/^scan_clamscan=.*/scan_clamscan="1"/' \
-    -e 's/^scan_yara=.*/scan_yara="1"/' \
-    -e 's/^scan_yara_scope=.*/scan_yara_scope="custom"/' \
+    -e 's/^scan_yara=.*/scan_yara="0"/' \
     -e 's/^scan_ignore_root=.*/scan_ignore_root="0"/' \
     -e 's/^scan_max_depth=.*/scan_max_depth="30"/' \
     -e 's/^quarantine_hits=.*/quarantine_hits="0"/' \
     -e 's/^quarantine_clean=.*/quarantine_clean="0"/' \
     -e 's/^quarantine_on_error=.*/quarantine_on_error="0"/' \
     /usr/local/maldetect/conf.maldet
-
-# php-malware-finder rules, minus its live malware samples; compiling them here
-# fails the build if yara lost the hash module the rules import
-RUN mkdir -p /opt/pmf && \
-    wget -qO- https://github.com/jvoisin/php-malware-finder/archive/refs/heads/master.tar.gz | \
-    tar -xz -C /opt/pmf --strip-components=2 --exclude='php-malware-finder-master/data/samples' php-malware-finder-master/data && \
-    yara -w /opt/pmf/php.yar /dev/null
 
 # bake current signatures as the seed for empty persisted volumes; a rate-limited
 # freshclam here is not fatal since every run updates before scanning
