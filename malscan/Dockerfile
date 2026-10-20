@@ -11,7 +11,7 @@ RUN printf 'DatabaseDirectory /var/lib/clamav\nDatabaseOwner root\nDatabaseMirro
 # install maldet; its installer drops cron files, so the directories must exist,
 # and its trailing signature update may fail without failing the install
 RUN mkdir -p /tmp/lmd /etc/cron.d /etc/cron.daily /etc/cron.weekly && \
-    wget -qO- https://cdn.rfxn.com/downloads/maldetect-current.tar.gz | tar -xz -C /tmp/lmd --strip-components=1 && \
+    wget -qO- https://github.com/rfxn/linux-malware-detect/archive/refs/heads/master.tar.gz | tar -xz -C /tmp/lmd --strip-components=1 && \
     cd /tmp/lmd && (./install.sh || true) && \
     test -x /usr/local/maldetect/maldet && \
     rm -rf /tmp/lmd /etc/cron.d/maldet* /etc/cron.daily/maldet /etc/cron.weekly/maldet-watchdog
