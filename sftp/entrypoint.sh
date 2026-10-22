@@ -65,4 +65,10 @@ if [ -d /etc/ssh/sshd_config.d ]; then
     cat /etc/ssh/sshd_config.d/*.conf >> /etc/ssh/sshd_config 2>/dev/null || true
 fi
 
-exec /usr/sbin/sshd -D -e
+# send sshd's auth log to the mounted /var/log/messages so fail2ban can read it
+syslogd -O /var/log/messages
+
+# echo the same log to the container's stdout so podman logs still shows it
+tail -n 0 -F /var/log/messages &
+
+exec /usr/sbin/sshd -D
