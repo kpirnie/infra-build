@@ -6,11 +6,11 @@
 FROM docker.io/library/alpine:latest AS builder
 
 # ── Version pins (overridable via --build-arg in GH Actions) ─────────────────
-ARG NGINX_VERSION=1.31.3
-ARG OPENSSL_VERSION=4.0.0
+ARG NGINX_VERSION=1.31.8
+ARG OPENSSL_VERSION=4.0.3
 ARG HEADERS_MORE_VERSION=0.40
 ARG GEOIP2_VERSION=3.4
-ARG NJS_VERSION=1.0.0
+ARG NJS_VERSION=1.0.2
 
 # ── Build toolchain + compile-time dependencies ───────────────────────────────
 RUN apk add --no-cache \
