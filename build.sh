@@ -61,6 +61,15 @@ resolve_nginx_versions() {
   log "  headers-more   : ${HEADERS_MORE_VERSION}"
   log "  geoip2         : ${GEOIP2_VERSION}"
   log "  njs            : ${NJS_VERSION}"
+  echo "" 
+}
+
+resolve_valkey_version() {
+  log "Resolving latest stable Valkey version..."
+
+  VALKEY_VERSION=$(gh_latest valkey-io/valkey)
+
+  log "  valkey         : ${VALKEY_VERSION}"
   echo ""
 }
 
@@ -94,7 +103,7 @@ preflight() {
     fi
   fi
 
-  for dir in nginx php sftp fail2ban malscan; do
+  for dir in nginx php sftp fail2ban malscan valkey; do
     if [[ ! -d "$dir" ]]; then
       fail "Expected directory '${dir}' not found — run this script from the repo root"
       exit 1
@@ -294,6 +303,30 @@ smoke_malscan() {
   return "${passed}"
 }
 
+# ── valkey smoke test ─────────────────────────────────────────────────────────
+smoke_valkey() {
+  local tag="$1"
+  log "Smoke testing valkey: ${tag}"
+  local passed=0
+
+  local ver
+  if ver=$(podman run --rm --entrypoint valkey-server "${tag}" --version 2>&1); then
+    ok "valkey-server: ${ver}"
+  else
+    fail "valkey-server: check failed"
+    (( passed++ )) || true
+  fi
+
+  if ver=$(podman run --rm --entrypoint valkey-cli "${tag}" --version 2>&1); then
+    ok "valkey-cli: ${ver}"
+  else
+    fail "valkey-cli: check failed"
+    (( passed++ )) || true
+  fi
+
+  return "${passed}"
+}
+
 # ── Build + smoke + optional push for a single image ─────────────────────────
 # Usage: run_image <key> <label> <context> <smoke_fn> <full_tag> <dated_tag> [extra build args...]
 run_image() {
@@ -369,13 +402,22 @@ run_image "malscan" "malscan" "malscan" \
     "ghcr.io/kpirnie/malscan:${TAG_SUFFIX}" \
     "ghcr.io/kpirnie/malscan:${TAG_SUFFIX}-${BUILD_DATE}"
 
+# valkey — resolve latest stable release, pass as build arg
+resolve_valkey_version
+
+run_image "valkey" "valkey" "valkey" \
+    smoke_valkey \
+    "ghcr.io/kpirnie/valkey:${TAG_SUFFIX}" \
+    "ghcr.io/kpirnie/valkey:${TAG_SUFFIX}-${BUILD_DATE}" \
+    "VALKEY_VERSION=${VALKEY_VERSION}"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo -e "${BOLD}──────────────────────────────────────────${NC}"
 echo -e "${BOLD}  Build Summary${NC}"
 echo -e "${BOLD}──────────────────────────────────────────${NC}"
 
 OVERALL=0
-for key in nginx php-8.2 php-8.3 php-8.4 php-8.5 sftp fail2ban malscan; do
+for key in nginx php-8.2 php-8.3 php-8.4 php-8.5 sftp fail2ban malscan valkey; do
   result="${RESULTS[$key]:-SKIPPED}"
   if [[ "${result}" == "PASS" ]]; then
     echo -e "  ${GREEN}✔${NC}  ${key}"
