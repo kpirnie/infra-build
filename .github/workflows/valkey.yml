@@ -1,0 +1,70 @@
+name: Build · valkey
+
+on:
+  schedule:
+    - cron: "50 0 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "valkey/**"
+      - ".github/workflows/valkey.yml"
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/kpirnie/valkey
+
+jobs:
+  build:
+    name: Build & push valkey
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set build metadata
+        id: meta
+        run: echo "date=$(date -u +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: Resolve latest stable Valkey version
+        id: versions
+        run: |
+          gh_latest() { curl -fsSL "https://api.github.com/repos/$1/releases/latest" | grep '"tag_name"' | cut -d'"' -f4; }
+
+          valkey=$(gh_latest valkey-io/valkey)
+
+          echo "valkey=${valkey}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: valkey
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:latest-${{ steps.meta.outputs.date }}
+          build-args: |
+            VALKEY_VERSION=${{ steps.versions.outputs.valkey }}
+            BUILD_DATE=${{ steps.meta.outputs.date }}
+            VCS_REF=${{ github.sha }}
+          # Scoped cache keeps valkey layers isolated from other images
+          cache-from: type=gha,scope=valkey
+          cache-to: type=gha,scope=valkey,mode=max

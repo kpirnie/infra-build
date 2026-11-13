@@ -7,7 +7,7 @@
 FROM docker.io/library/alpine:latest AS builder
 
 # ── Version pins (overridable via --build-arg in GH Actions) ─────────────────
-ARG VALKEY_VERSION=9.0.0
+ARG VALKEY_VERSION=9.1.3
 
 # ── Build toolchain + compile-time dependencies ───────────────────────────────
 RUN apk add --no-cache \

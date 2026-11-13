@@ -2,7 +2,7 @@ name: Build · SFTP
 
 on:
   schedule:
-    - cron: "20 0 * * *"
+    - cron: "40 0 * * *"
   push:
     branches: [main]
     paths:
