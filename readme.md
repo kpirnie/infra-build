@@ -70,6 +70,25 @@ Plus all default extensions bundled in the official PHP Alpine image: `curl` `do
 
 ---
 
+### Valkey
+
+```
+ghcr.io/kpirnie/valkey:latest
+ghcr.io/kpirnie/valkey:latest-YYYY-MM-DD
+```
+
+**Built with:**
+
+| Feature | Detail |
+|---|---|
+| Base | `alpine:latest` |
+| Valkey | Latest stable release of [valkey-io/valkey](https://github.com/valkey-io/valkey), compiled from source (release candidates are never used) |
+| TLS | Compiled in (`BUILD_TLS=yes`), disabled at runtime |
+| Arch | `linux/amd64`, `linux/arm64` |
+| Runs as | `valkey` UID 999 / GID 1000 (never root, nothing is chowned at runtime) |
+
+---
+
 ## Configuration
 
 Both images ship a minimal base config. Everything else is expected to be volume-mounted.
