@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     libwebp-dev       \
     libxml2-dev       \
     libxslt-dev       \
-    yaml-dev       \
+    yaml-dev          \
     libzip-dev        \
     linux-headers     \
     tidyhtml-dev      \
@@ -114,6 +114,7 @@ RUN apk add --no-cache \
     libpq           \
     libsodium       \
     libwebp         \
+    msmtp           \
     libxslt         \
     libzip          \
     yaml            \
